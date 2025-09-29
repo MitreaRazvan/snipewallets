@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String?        @unique
+  walletAddress String?        @unique
+  authMethod    String         // "phantom" | "email"
+  passwordHash  String?
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  savedWallets  SavedWallet[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model SavedWallet {
+  id            String   @id @default(cuid())
+  userId        String
+  walletAddress String
+  nickname      String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, walletAddress])
+  @@index([userId])
+}
+
+model WalletCache {
+  walletAddress   String   @id
+  realizedPnl     Float
+  unrealizedPnl   Float
+  totalPnl        Float
+  roi             Float
+  winRate         Float
+  totalTrades     Int
+  winningTrades   Int
+  losingTrades    Int
+  volume24h       Float
+  volume7d        Float
+  volume30d       Float
+  totalVolume     Float
+  bestToken       String?
+  bestTokenProfit Float?
+  worstToken      String?
+  worstTokenLoss  Float?
+  avgTradeSize    Float
+  bestTrade       Float
+  worstTrade      Float
+  activeDays      Int
+  firstTradeDate  DateTime?
+  lastTradeDate   DateTime?
+  solBalance      Float?
+  tokenCount      Int?
+  nftCount        Int?
+  totalGasFees    Float?
+  updatedAt       DateTime @updatedAt
+  rawData         Json?
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  walletAddress String
+  signature     String   @unique
+  blockTime     DateTime
+  type          String
+  tokenMint     String
+  tokenSymbol   String
+  tokenName     String?
+  tokenLogo     String?
+  amount        Float
+  pricePerToken Float
+  totalValue    Float
+  realizedPnl   Float?
+  costBasis     Float?
+  solAmount     Float?
+  createdAt     DateTime @default(now())
+  
+  @@index([walletAddress])
+  @@index([tokenMint])
+  @@index([blockTime])
+}
+
+model TokenHolding {
+  id               String   @id @default(cuid())
+  walletAddress    String
+  tokenMint        String
+  tokenSymbol      String
+  tokenName        String?
+  tokenLogo        String?
+  amount           Float
+  costBasis        Float
+  avgBuyPrice      Float
+  currentPrice     Float
+  currentValue     Float
+  unrealizedPnl    Float
+  pnlPercentage    Float
+  portfolioPercent Float
+  firstBuyDate     DateTime
+  updatedAt        DateTime @updatedAt
+  
+  @@unique([walletAddress, tokenMint])
+  @@index([walletAddress])
+}
+
+model ScrapedWallet {
+  walletAddress String   @id
+  source        String
+  rank          Int?
+  scrapedAt     DateTime @default(now())
+  isActive      Boolean  @default(true)
+}
